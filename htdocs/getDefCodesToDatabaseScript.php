@@ -9,7 +9,7 @@
  * @package  DefCodesParser
  * @author   Ilya Chetverikov <ischetverikov@gmail.com>
  * @license  http://www.php.net/license/3_01.txt  PHP License 3.01
- * @link     http://pear.php.net/package/PackageName
+ * @link     https://github.com/Partevikov/DefCodesParser
  */
 require_once "DefCodesParser.php";
 $configPath = "config.ini";
@@ -104,34 +104,34 @@ foreach ($defCodesInfoArr as $defCode => $defCodeInfoArr) {
     
     $query = "INSERT INTO $tableName ";
     $query .= "(def, num_s, num_e, region, operator, fd, td) VALUES ";
+    $query .= "(:def, :num_s, :num_e, :region, :operator, :fd, :td);";
+
+    $STH = $dbConnection->prepare($query);
+    $dbConnection->beginTransaction();
+    
+    $data = array();
+    $data['def'] = $defCode;
     
     for ($i = 0; $i < count($defCodeInfoArr); $i++) {
-        $def = $defCode;
-        $num_s = $defCodeInfoArr[$i]['num_s'];
-        $num_e = $defCodeInfoArr[$i]['num_e'];
-        $region = $defCodeInfoArr[$i]['region'];
-        $operator = $defCodeInfoArr[$i]['operator'];
-        $fd = date("Y-m-d", strtotime($defCodeInfoArr[$i]['fd']));
-        $td = date("Y-m-d", strtotime($defCodeInfoArr[$i]['td']));
+        $data['num_s'] = $defCodeInfoArr[$i]['num_s'];
+        $data['num_e'] = $defCodeInfoArr[$i]['num_e'];
+        $data['region'] = $defCodeInfoArr[$i]['region'];
+        $data['operator'] = $defCodeInfoArr[$i]['operator'];
+        $data['fd'] = date("Y-m-d", strtotime($defCodeInfoArr[$i]['fd']));
+        $data['td'] = date("Y-m-d", strtotime($defCodeInfoArr[$i]['td']));
         
-        $query .= "('$def', '$num_s', '$num_e',";
-        $query .= " '$region', '$operator', '$fd', '$td'),";
+        try {        
+            $STH->execute($data); 
+        } catch (PDOException $e) {
+            print "Ошибка при добавленни данных в БД: ".$e->getMessage()."<br/>\n";
+        }
     }
     
-    $query = substr($query, 0, -1);
-    $query .= ";";
-    
-    try {        
-        $STH = $dbConnection->prepare($query);
-        $STH->execute();
-        print("Запись о коде $defCode добавлена успешно!<br/>\n");
-    } catch (PDOException $e) {
-        print "Error!: ".$e->getMessage()."<br/>\n";
-        print("Запись о коде $defCode не добавлена!<br/>\n");
-    }
+    $dbConnection->commit();
+    print("Код $defCode обработан.<br/>\n");
+     
 }
-    
+
 $dbConnection = null;
     
 ?>
-  
